@@ -1,0 +1,79 @@
+@baseUrl = http://localhost:8080
+
+### 1. Crear cliente. Esperado: 201 Created y UUID guardado para las solicitudes siguientes.
+# @name crearCliente
+POST {{baseUrl}}/api/clientes
+Content-Type: application/json
+
+{
+  "nombre": "Cliente Taller 7",
+  "email": "taller7.demo@example.com"
+}
+> {% client.global.set("clienteId", response.body.id); %}
+
+### 2. Crear habitación estándar. Esperado: 201 Created con tipo ESTANDAR.
+# @name crearEstandar
+POST {{baseUrl}}/api/habitaciones/estandar
+Content-Type: application/json
+
+{
+  "numero": "E07-101",
+  "precioPorNoche": 120.0,
+  "capacidadMaxima": 2,
+  "camasIndividuales": 2
+}
+> {% client.global.set("habitacionEstandarId", response.body.id); %}
+
+### 3. Crear suite presidencial. Esperado: 201 Created, tipo SUITE y campos propios verdaderos.
+# @name crearSuite
+POST {{baseUrl}}/api/habitaciones/suites
+Content-Type: application/json
+
+{
+  "numero": "P05-501",
+  "precioPorNoche": 350.0,
+  "capacidadMaxima": 2,
+  "jacuzziPrivado": true,
+  "incluyeMayordomo": true
+}
+> {% client.global.set("suiteId", response.body.id); %}
+
+### 4. Crear reserva del cliente en la habitación estándar. Esperado: 201 Created; el costo es 240.0.
+# @name crearReserva
+POST {{baseUrl}}/api/reservas
+Content-Type: application/json
+
+{
+  "clienteId": "{{clienteId}}",
+  "habitacionId": "{{habitacionEstandarId}}",
+  "fechaInicio": "2026-11-10T15:00:00",
+  "fechaFin": "2026-11-12T15:00:00"
+}
+
+### 5. Listar habitaciones. Esperado: 200 OK; conviven ESTANDAR y SUITE con sus campos propios.
+GET {{baseUrl}}/api/habitaciones
+Accept: application/json
+
+### 6. Resumen del cliente. Esperado: 200 OK; una reserva, monto 240.0 y reserva embebida plana.
+GET {{baseUrl}}/api/clientes/{{clienteId}}/resumen
+Accept: application/json
+
+### 7. Cliente antes del PATCH. Esperado: 200 OK; permite comparar email, activo y penalizaciones.
+GET {{baseUrl}}/api/clientes/{{clienteId}}
+Accept: application/json
+
+### 8. PATCH solo nombre. Esperado: 200 OK; los demás campos se conservan.
+PATCH {{baseUrl}}/api/clientes/{{clienteId}}
+Content-Type: application/json
+
+{
+  "nombre": "Nuevo Nombre Modificado"
+}
+
+### 9. Cliente después del PATCH. Esperado: 200 OK; nombre actualizado y email, activo, penalizaciones sin cambios.
+GET {{baseUrl}}/api/clientes/{{clienteId}}
+Accept: application/json
+
+### 10. UUID inexistente. Esperado: 404 Not Found y JSON con timestamp, status, error y mensaje.
+GET {{baseUrl}}/api/clientes/00000000-0000-0000-0000-000000000000
+Accept: application/json
